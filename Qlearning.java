@@ -25,9 +25,10 @@ public class Qlearning {
 	private static void run()
     {
     	Random rand = new Random();
-    	for(int i=0;i<1000;i++)//train episodes
+    	for(int i=0;i<10000;i++)//train episodes
     	{
     		State iniState = initial;
+    		Button.waitForAnyPress(); // new episode
     		while(iniState != goal)
     		{
     			int randIndex = rand.nextInt(4);
@@ -35,28 +36,18 @@ public class Qlearning {
     			
     			if(valid(iniState, randIndex))
     			{
-    				State nextState = iniState;
-    			
+    				State nextState = next(iniState, randIndex);   			
     				double q = Qtable(iniState, randIndex);
-    				int max = maxQ(nextState, randIndex);
-    				double r = reward(iniState, randIndex);
-    			
-    				double value = q + alpha * (r + gamma * max - q);
-    			
-    				setQ(iniState.x, iniState.y, randIndex, value);
-    			
-    				//Doaction(act);
-    			
-    				String s = "";
-    			
-    				s += randIndex;
-    			
-    				System.out.println(s);
-    			
+    				double max = maxQ(nextState);
+    				double r = reward(iniState, randIndex);   			
+    				double value = q + alpha * (r + gamma * max - q);    			
+    				setQ(iniState.x, iniState.y, randIndex, value);  			
+    				//Doaction(act);	
     				iniState = nextState;
     			}
     		}
     	}
+    	//doBest();
     }
 	
 	private static void setQ(int x, int y, int act, double value)
@@ -70,63 +61,68 @@ public class Qlearning {
 	}
 	private static boolean valid(State state, int act)
 	{
-		////////////////////////////EEEEEEEEEEEEEEERRRRRRRRRRRROOOOOOOOOO///////////////
-			if((act==0 && state.y >= 5) || (act==3 && state.y <= 0) || (act==2 && state.x >= 5) || (act==1 && state.x <= 0))
+			if((act==0 && state.y == 5) || (act==3 && state.y == 0) || (act==2 && state.x == 5) || (act==1 && state.x == 0))
 				return false;
 			else
 				return true;
 	}
-	private static int maxQ(State state, int act)
+	private static State next (State iniState, int act)
 	{
+		State nextState = iniState;
 		if(act==0)
-			state.y += 1;
+			nextState.y += 1;
 		else
 		{
 			if(act==1)
-				state.x -= 1;
+				nextState.x -= 1;
 			else
 			{
 				if (act==2)
-					state.x += 1;
+					nextState.x += 1;
 				else
 				{
 					if(act==3)
-						state.y -= 1;
+						nextState.y -= 1;
 				}
 			}	
+		}
+		return nextState;
 	}
-		int j=0; // Action
+	private static double maxQ(State state)
+	{
 		double maxValue = -1000;  // min Value
 		for(int i=0;i<numberActions;i++)
 		{
 			if(Q[state.x][state.y][i]>maxValue)
 			{
 				maxValue = Q[state.x][state.y][i];
-				j = i;
 			}
 		}
-		return j;
+		return maxValue;
 	}
 	
 	public static double reward(State iniState, int act)
 	{
-		if(iniState.x==goal.x && iniState.y==goal.y)
+		if(iniState==goal)
 			return 1000;
-		if(iniState.x==goal.x-1 && iniState.y==goal.y && act==2)
-			return 200;
+//		if(iniState.x==goal.x-1 && iniState.y==goal.y && act==2)
+//			return 200;
+//		else
+//			if(iniState.x==goal.x+1 && iniState.y==goal.y && act==1)
+//				return 200;
+//			else
+//				if(iniState.x==goal.x && iniState.y==goal.y-1 && act==0)
+//					return 200;
+//				else
+//					if(iniState.x==goal.x && iniState.y==goal.y+1 && act==3)
+//						return 200;
 		else
-			if(iniState.x==goal.x+1 && iniState.y==goal.y && act==1)
-				return 200;
-			else
-				if(iniState.x==goal.x && iniState.y==goal.y-1 && act==0)
-					return 200;
-				else
-					if(iniState.x==goal.x && iniState.y==goal.y+1 && act==3)
-						return 200;
-					else
-						return -0.1;
+			return -0.1;
 	}
-	
+//	private static void doBest()
+//	{
+//		
+//	}
 	// /////////////////////// Mover ////////////////////////////////////
 
 	private static void CorrectionFactorA() // Correction Factor motor A
@@ -213,6 +209,7 @@ public class Qlearning {
 	// /////////////////////////////////////////////////////////////////
 
 	public static void main(String[] args) {
+		LCD.drawString("Running", 0, 0);
 		run();
 	}
 
