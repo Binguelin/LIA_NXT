@@ -8,7 +8,7 @@ public class Qlearning {
     final static double alpha = 0.1;
     final static double gamma = 0.9;
 	
-
+    public static final int Q_BASE = 0; // Base
 	public static final int Q_SIZE = 6; // Matriz 6x6
 	public static final int numberActions = 4;
 	
@@ -34,14 +34,14 @@ public class Qlearning {
     			int randIndex = rand.nextInt(4);
     			Actions act = Actions.values()[randIndex];
     			
-    			if(valid(iniState, randIndex))
+    			if(valid(iniState, act))
     			{
-    				State nextState = next(iniState, randIndex);   			
+    				State nextState = next(iniState, act);   			
     				double q = Qtable(iniState, randIndex);
     				double max = maxQ(nextState);
     				double r = reward(iniState, randIndex);   			
     				double value = q + alpha * (r + gamma * max - q);    			
-    				setQ(iniState.x, iniState.y, randIndex, value);  			
+    				setQ(iniState, randIndex, value);  			
     				//Doaction(act);	
     				iniState = nextState;
     			}
@@ -50,45 +50,46 @@ public class Qlearning {
     	//doBest();
     }
 	
-	private static void setQ(int x, int y, int act, double value)
+	private static void setQ(State iniState, int act, double value) //OK
 	{
-		Q[x][y][act] = value;
+		Q[iniState.x][iniState.y][act] = value;
 	}
 	
-	private static double Qtable (State iniState, int randIndex)
+	private static double Qtable (State iniState, int act) //OK
 	{
-		return Q[iniState.x][iniState.y][randIndex];
+		return Q[iniState.x][iniState.y][act];
 	}
-	private static boolean valid(State state, int act)
+	private static boolean valid(State state, Actions act) //OK
 	{
-			if((act==0 && state.y == 5) || (act==3 && state.y == 0) || (act==2 && state.x == 5) || (act==1 && state.x == 0))
+			if((act == Actions.FORWARD && state.y == Q_SIZE - 1) || (act== Actions.LEFT && state.y == Q_BASE ) ||
+					(act==Actions.RIGHT && state.x == Q_SIZE - 1 ) || (act==Actions.BACKWARD && state.x == Q_BASE))
 				return false;
 			else
 				return true;
 	}
-	private static State next (State iniState, int act)
+	private static State next (State iniState, Actions act) //OK
 	{
 		State nextState = iniState;
-		if(act==0)
+		if(act==Actions.FORWARD)
 			nextState.y += 1;
 		else
 		{
-			if(act==1)
+			if(act==Actions.LEFT)
 				nextState.x -= 1;
 			else
 			{
-				if (act==2)
+				if (act==Actions.RIGHT)
 					nextState.x += 1;
 				else
 				{
-					if(act==3)
+					if(act==Actions.BACKWARD)
 						nextState.y -= 1;
 				}
 			}	
 		}
 		return nextState;
 	}
-	private static double maxQ(State state)
+	private static double maxQ(State state) //OK
 	{
 		double maxValue = -1000;  // min Value
 		for(int i=0;i<numberActions;i++)
@@ -101,25 +102,14 @@ public class Qlearning {
 		return maxValue;
 	}
 	
-	public static double reward(State iniState, int act)
+	public static double reward(State iniState, int act) //OK
 	{
 		if(iniState==goal)
 			return 1000;
-//		if(iniState.x==goal.x-1 && iniState.y==goal.y && act==2)
-//			return 200;
-//		else
-//			if(iniState.x==goal.x+1 && iniState.y==goal.y && act==1)
-//				return 200;
-//			else
-//				if(iniState.x==goal.x && iniState.y==goal.y-1 && act==0)
-//					return 200;
-//				else
-//					if(iniState.x==goal.x && iniState.y==goal.y+1 && act==3)
-//						return 200;
 		else
 			return -0.1;
 	}
-	// /////////////////////// Mover ////////////////////////////////////
+	///////////////////////// Mover ////////////////////////////////////
 
 	private static void CorrectionFactorA() // Correction Factor motor A
 	{
