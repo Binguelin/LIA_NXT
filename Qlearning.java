@@ -7,6 +7,7 @@ import lejos.util.Delay;
 public class Qlearning {
     final static double alpha = 0.1;
     final static double gamma = 0.9;
+
 	
     public static final int Q_BASE = 0; // Base
 	public static final int Q_SIZE = 6; // Matriz 6x6
@@ -147,18 +148,17 @@ public class Qlearning {
 
 	private static void TurnLeft() // Turn the NXT to left
 	{
-		// Motor.A.rotate(4*360);
-		Motor.A.rotateTo(Motor.A.getTachoCount() + 4 * 360);
-		// Correction factor backwards
-		Motor.A.backward();
+		Motor.A.rotate(4*360);
+		//Motor.A.rotateTo(Motor.A.getTachoCount() + 4 * 360);
+		Motor.A.backward(); // Correction factor backwards
 		Delay.msDelay(250);
 		Motor.A.stop();
 	}
 
 	private static void TurnRight() // Turn the NXT to right
 	{
-		// Motor.A.rotate(-4*360);
-		Motor.A.rotateTo(Motor.A.getTachoCount() - 4 * 360);
+		Motor.A.rotate(-1290);
+		//Motor.A.rotateTo(Motor.A.getTachoCount() - 4 * 360);
 		Motor.A.forward();
 		Delay.msDelay(250);
 		Motor.A.stop();
@@ -195,8 +195,10 @@ public class Qlearning {
 	// /////////////////////////////////////////////////////////////////
 
 	public static void main(String[] args) {
-		LCD.drawString("Running", 0, 0);
-		run();
+	    Motor.A.setSpeed(4*360); //motor A speed
+	    Motor.B.setSpeed(4*360); //motor B speed
+	    LCD.drawString("Running Program", 0, 0);
+	    run();
 	}
 
 }
