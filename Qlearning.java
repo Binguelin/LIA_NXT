@@ -119,10 +119,6 @@ public class Qlearning {
 		else
 			return -0.1;
 	}
-//	private static void doBest()
-//	{
-//		
-//	}
 	// /////////////////////// Mover ////////////////////////////////////
 
 	private static void CorrectionFactorA() // Correction Factor motor A
