@@ -7,15 +7,17 @@ import lejos.util.Delay;
 public class Qlearning {
     final static double alpha = 0.1;
     final static double gamma = 0.9;
-
+    final static int maxstep = 10;
+    
+    static int episode = 1;
 	
     public static final int Q_BASE = 0; // Base
 	public static final int Q_SIZE = 6; // Matriz 6x6
 	public static final int numberActions = 4;
 	
 
-	public static State goal = new State(4, 5); // goal
-	public static State initial = new State(0, 0); // initial state 
+	public static final State goal = new State(4, 5); // goal
+	public static final State initial = new State(0, 0); // initial state 
 
 	private static double Q[][][] = new double[Q_SIZE][Q_SIZE][numberActions]; // Q-table
 
@@ -25,32 +27,41 @@ public class Qlearning {
 
 	private static void run()
     {
-    	Random rand = new Random();
+		int steps = 0;
     	for(int i=0;i<10000;i++)//train episodes
     	{
-    		State iniState = initial;
-    		Button.waitForAnyPress(); // new episode
-    		while(iniState != goal)
+    		State iniState = new State(Q_BASE,Q_BASE);
+    		System.out.println("new episode " + episode + " steps " + steps);
+    		steps=0;
+//    		Button.waitForAnyPress(); // new episode
+//    		LCD.clear();
+    		steps++;
+    		while(!(iniState.x == goal.x && iniState.y == goal.y))
     		{
-    			int randIndex = rand.nextInt(4);
+    	    	Random rand = new Random();
+    			int randIndex = rand.nextInt(numberActions);
     			Actions act = Actions.values()[randIndex];
-    			
     			if(valid(iniState, act))
     			{
+    				steps++;
+//    				if(steps%maxstep==0) // correction for moving errors
+//    				{	
+//    					//Button.waitForAnyPress();
+//    				}
     				State nextState = next(iniState, act);   			
     				double q = Qtable(iniState, randIndex);
     				double max = maxQ(nextState);
-    				double r = reward(iniState, randIndex);   			
+    				double r = reward(iniState, act);   			
     				double value = q + alpha * (r + gamma * max - q);    			
     				setQ(iniState, randIndex, value);  			
     				//Doaction(act);	
     				iniState = nextState;
     			}
     		}
+    		episode++;
     	}
-    	//doBest();
     }
-	
+
 	private static void setQ(State iniState, int act, double value) //OK
 	{
 		Q[iniState.x][iniState.y][act] = value;
@@ -62,8 +73,8 @@ public class Qlearning {
 	}
 	private static boolean valid(State state, Actions act) //OK
 	{
-			if((act == Actions.FORWARD && state.y == Q_SIZE - 1) || (act== Actions.LEFT && state.y == Q_BASE ) ||
-					(act==Actions.RIGHT && state.x == Q_SIZE - 1 ) || (act==Actions.BACKWARD && state.x == Q_BASE))
+			if((act==Actions.FORWARD && state.y == Q_SIZE - 1) || (act==Actions.LEFT && state.x == Q_BASE ) ||
+					(act==Actions.RIGHT && state.x == Q_SIZE - 1 ) || (act==Actions.BACKWARD && state.y == Q_BASE))
 				return false;
 			else
 				return true;
@@ -103,12 +114,14 @@ public class Qlearning {
 		return maxValue;
 	}
 	
-	public static double reward(State iniState, int act) //OK
+	public static double reward(State iniState, Actions act) //OK
 	{
+		State s1 = new State(3,5);
+		State s2 = new State(5,5);
+		State s3 = new State(4,4);
 		if(iniState==goal)
 			return 1000;
-		else
-			return -0.1;
+		return -0.1;
 	}
 	///////////////////////// Mover ////////////////////////////////////
 
@@ -197,8 +210,21 @@ public class Qlearning {
 	public static void main(String[] args) {
 	    Motor.A.setSpeed(4*360); //motor A speed
 	    Motor.B.setSpeed(4*360); //motor B speed
-	    LCD.drawString("Running Program", 0, 0);
 	    run();
+	    for(int i=0;i<Q_SIZE;i++)
+	    {
+	    	for(int j=0;j<Q_SIZE;j++)
+	    	{
+	    		for(int k=0;k<numberActions;k++)
+	    		{
+	    			System.out.print(Q[i][j][k] + " ");
+	    		}
+	    		System.out.println();
+	    	}
+	    	System.out.println();
+	    }
+	    System.out.print("DONE!!");
+	    Button.waitForAnyPress();
 	}
 
 }
