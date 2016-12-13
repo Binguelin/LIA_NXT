@@ -1,10 +1,19 @@
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import lejos.robotics.navigation.DifferentialPilot;
 import java.util.Random;
-import lejos.nxt.Motor;
+
 import lejos.nxt.Button;
-import lejos.nxt.LCD;
+import lejos.nxt.Motor;
 import lejos.util.Delay;
 
 public class Qlearning {
+	static DifferentialPilot pilot;
     final static double alpha = 0.1;
     final static double gamma = 0.9;
     final static int maxstep = 10;
@@ -14,12 +23,13 @@ public class Qlearning {
     public static final int Q_BASE = 0; // Base
 	public static final int Q_SIZE = 6; // Matriz 6x6
 	public static final int numberActions = 4;
-	
 
+	public static Q_Table Qt = new Q_Table(6, 4);
+	
 	public static final State goal = new State(4, 5); // goal
 	public static final State initial = new State(0, 0); // initial state 
-
-	private static double Q[][][] = new double[Q_SIZE][Q_SIZE][numberActions]; // Q-table
+	
+//	private static double Q[][][] = new double[Q_SIZE][Q_SIZE][numberActions]; // Q-table
 
 	public enum Actions {
 		FORWARD, LEFT, RIGHT, BACKWARD;
@@ -28,7 +38,7 @@ public class Qlearning {
 	private static void run()
     {
 		int steps = 0;
-    	for(int i=0;i<10000;i++)//train episodes
+    	for(int i=0;i<10;i++)//train episodes
     	{
     		State iniState = new State(Q_BASE,Q_BASE);
     		System.out.println("new episode " + episode + " steps " + steps);
@@ -44,6 +54,7 @@ public class Qlearning {
     			if(valid(iniState, act))
     			{
     				steps++;
+    				System.out.println(iniState.x + " " + iniState.y + " " + act);
 //    				if(steps%maxstep==0) // correction for moving errors
 //    				{	
 //    					//Button.waitForAnyPress();
@@ -54,7 +65,7 @@ public class Qlearning {
     				double r = reward(iniState, act);   			
     				double value = q + alpha * (r + gamma * max - q);    			
     				setQ(iniState, randIndex, value);  			
-    				//Doaction(act);	
+    				Doaction(act);	
     				iniState = nextState;
     			}
     		}
@@ -64,12 +75,12 @@ public class Qlearning {
 
 	private static void setQ(State iniState, int act, double value) //OK
 	{
-		Q[iniState.x][iniState.y][act] = value;
+		Qt.Q[iniState.x][iniState.y][act] = value;
 	}
 	
 	private static double Qtable (State iniState, int act) //OK
 	{
-		return Q[iniState.x][iniState.y][act];
+		return Qt.Q[iniState.x][iniState.y][act];
 	}
 	private static boolean valid(State state, Actions act) //OK
 	{
@@ -106,9 +117,9 @@ public class Qlearning {
 		double maxValue = -1000;  // min Value
 		for(int i=0;i<numberActions;i++)
 		{
-			if(Q[state.x][state.y][i]>maxValue)
+			if(Qt.Q[state.x][state.y][i]>maxValue)
 			{
-				maxValue = Q[state.x][state.y][i];
+				maxValue = Qt.Q[state.x][state.y][i];
 			}
 		}
 		return maxValue;
@@ -141,40 +152,44 @@ public class Qlearning {
 
 	private static void GoForward() // NXT will go forward for 1 seconds
 	{
-		Motor.A.forward();
-		Motor.B.forward();
-		Delay.msDelay(1000);
-		Motor.A.stop();
-		Motor.B.stop();
-		CorrectionFactorA();
+		pilot.travel(1); 
+//		Motor.A.forward();
+//		Motor.B.forward();
+//		Delay.msDelay(1000);
+//		Motor.A.stop();
+//		Motor.B.stop();
+//		CorrectionFactorA();
 	}
 
 	private static void GoBackward() // NXT will go backward for 1 seconds
 	{
-		Motor.A.backward();
-		Motor.B.backward();
-		Delay.msDelay(1000);
-		Motor.A.stop();
-		Motor.B.stop();
-		CorrectionFactorB();
+		pilot.travel(-1);
+//		Motor.A.backward();
+//		Motor.B.backward();
+//		Delay.msDelay(1000);
+//		Motor.A.stop();
+//		Motor.B.stop();
+//		CorrectionFactorB();
 	}
 
 	private static void TurnLeft() // Turn the NXT to left
 	{
-		Motor.A.rotate(4*360);
-		//Motor.A.rotateTo(Motor.A.getTachoCount() + 4 * 360);
-		Motor.A.backward(); // Correction factor backwards
-		Delay.msDelay(250);
-		Motor.A.stop();
+		pilot.rotate(90);
+//		Motor.A.rotate(4*360);
+//		Motor.A.rotateTo(Motor.A.getTachoCount() + 4 * 360);
+//		Motor.A.backward(); // Correction factor backwards
+//		Delay.msDelay(250);
+//		Motor.A.stop();
 	}
 
 	private static void TurnRight() // Turn the NXT to right
 	{
-		Motor.A.rotate(-1290);
-		//Motor.A.rotateTo(Motor.A.getTachoCount() - 4 * 360);
-		Motor.A.forward();
-		Delay.msDelay(250);
-		Motor.A.stop();
+		pilot.rotate(-90);
+//		Motor.A.rotate(-1290);
+//		Motor.A.rotateTo(Motor.A.getTachoCount() - 4 * 360);
+//		Motor.A.forward();
+//		Delay.msDelay(250);
+//		Motor.A.stop();
 	}
 
 	private static void GoLeft() // NXT will turn left and go forward for 1
@@ -183,6 +198,7 @@ public class Qlearning {
 		TurnLeft();
 		Delay.msDelay(1000);
 		GoForward();
+		TurnRight();
 	}
 
 	private static void GoRight() // NXT will go right and go forward for 1
@@ -191,6 +207,7 @@ public class Qlearning {
 		TurnRight();
 		Delay.msDelay(1000);
 		GoForward();
+		TurnLeft();
 	}
 
 	public static void Doaction(Actions action) {
@@ -207,23 +224,35 @@ public class Qlearning {
 	}
 	// /////////////////////////////////////////////////////////////////
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException{
 	    Motor.A.setSpeed(4*360); //motor A speed
 	    Motor.B.setSpeed(4*360); //motor B speed
+	    File arq = new File("Entrada");
+        try
+        {
+            FileInputStream arquivoLeitura = new FileInputStream(arq);
+            ObjectInputStream objLeitura = new ObjectInputStream(arquivoLeitura);
+            Q_Table Qt = (Q_Table) objLeitura.readObject();
+            objLeitura.close();
+            arquivoLeitura.close();
+        }
+        catch( Exception e ) // Set Q_table in the first exemple
+        {
+            for(int i=0;i<Q_SIZE;i++)
+            {
+            	for(int j=0;j<Q_SIZE;j++)
+            	{
+            		for(int k=0;k<numberActions;k++)
+            		{
+            			Qt.Q[i][j][k] = 0;
+            		}
+            	}
+            }
+        }
 	    run();
-	    for(int i=0;i<Q_SIZE;i++)
-	    {
-	    	for(int j=0;j<Q_SIZE;j++)
-	    	{
-	    		for(int k=0;k<numberActions;k++)
-	    		{
-	    			System.out.print(Q[i][j][k] + " ");
-	    		}
-	    		System.out.println();
-	    	}
-	    	System.out.println();
-	    }
-	    System.out.print("DONE!!");
+	    FileOutputStream f_out = new FileOutputStream(arq);
+	    ObjectOutputStream obj_out = new ObjectOutputStream (f_out);
+	    obj_out.writeObject (Qt);
 	    Button.waitForAnyPress();
 	}
 
