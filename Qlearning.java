@@ -1,13 +1,16 @@
-//import java.io.File;
-//import java.io.FileInputStream;
-//import java.io.FileNotFoundException;
-//import java.io.FileOutputStream;
-//import java.io.IOException;
-//import java.io.ObjectInputStream;
-//import java.io.ObjectOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Random;
-import lejos.robotics.navigation.DifferentialPilot;
+
+import lejos.nxt.Button;
 import lejos.nxt.Motor;
+import lejos.robotics.navigation.DifferentialPilot;
+
 
 public class Qlearning {
     final static double alpha = 0.1;
@@ -20,12 +23,12 @@ public class Qlearning {
 	public static final int Q_SIZE = 6; // Matriz 6x6
 	public static final int numberActions = 4;
 
-//	public static Q_Table Qt = new Q_Table(6, 4);
+	public static Q_Table Qt = new Q_Table(6, 4);
 	
 	public static final State goal = new State(4, 5); // goal
 	public static final State initial = new State(0, 0); // initial state 
 	
-	private static double Q[][][] = new double[Q_SIZE][Q_SIZE][numberActions]; // Q-table
+//	private static double Q[][][] = new double[Q_SIZE][Q_SIZE][numberActions]; // Q-table
 
 	public enum Actions
 	{
@@ -52,7 +55,7 @@ public class Qlearning {
     			if(valid(iniState, act))
     			{
     				steps++;
-    				System.out.println(iniState.x + " " + iniState.y + " " + act);
+//    				System.out.println(iniState.x + " " + iniState.y + " " + act);
 //    				if(steps%maxstep==0) // correction for moving errors
 //    				{	
 //    					//Button.waitForAnyPress();
@@ -73,12 +76,12 @@ public class Qlearning {
 
 	private static void setQ(State iniState, int act, double value) //OK
 	{
-		Q[iniState.x][iniState.y][act] = value;
+		Qt.Q[iniState.x][iniState.y][act] = value;
 	}
 	
 	private static double Qtable (State iniState, int act) //OK
 	{
-		return Q[iniState.x][iniState.y][act];
+		return Qt.Q[iniState.x][iniState.y][act];
 	}
 	private static boolean valid(State state, Actions act) //OK
 	{
@@ -115,9 +118,9 @@ public class Qlearning {
 		double maxValue = -1000;  // min Value
 		for(int i=0;i<numberActions;i++)
 		{
-			if(Q[state.x][state.y][i]>maxValue)
+			if(Qt.Q[state.x][state.y][i]>maxValue)
 			{
-				maxValue = Q[state.x][state.y][i];
+				maxValue = Qt.Q[state.x][state.y][i];
 			}
 		}
 		return maxValue;
@@ -129,37 +132,78 @@ public class Qlearning {
 			return 1000;
 		return -0.1;
 	}
-	public static void main(String[] args)
+	public static void loadInput(File data)
+	{
+		try
+	    {
+	      InputStream is = new FileInputStream(data);
+	      DataInputStream din = new DataInputStream(is);
+
+	      for(int i=0;i<Q_SIZE;i++)
+	      {
+	      		for(int j=0;j<Q_SIZE;j++)
+	      		{
+	      			for(int k=0;k<numberActions;k++)
+	      			{
+	      				float x = din.readFloat();
+	      				Qt.Q[i][j][k] = x;
+	      			}
+	      		}
+	      }
+	      System.out.println("OK");
+	      din.close();
+	    } 
+	    catch (IOException ioe)
+	    {
+	      System.err.println("Read Exception");
+	    }
+	}
+	public static void writeOutput(File data) throws IOException
+	{
+		FileOutputStream out = null; // declare outside the try block
+	    if ( !data.exists() )
+	    {
+            data.createNewFile();
+        }
+	    try
+	    {
+	        out = new FileOutputStream(data);
+	    }
+	    catch(IOException e)
+	    {
+	      	System.err.println("Failed to create output stream");
+	      	Button.waitForAnyPress();
+	    }
+	    DataOutputStream dataOut = new DataOutputStream(out);
+	    try// write
+	    {
+	    	for(int i=0;i<Q_SIZE;i++)
+	      	{
+	      		for(int j=0;j<Q_SIZE;j++)
+	      		{
+	      			for(int k=0;k<numberActions;k++)
+	      			{
+	      				dataOut.writeFloat((float) Qt.Q[i][j][k]);
+	      			}
+	      		}
+	      	}
+	        out.close(); // flush the buffer and write the file
+	    } 
+	    catch (IOException e)
+	    {
+	        System.err.println("Failed to write to output stream");
+	    }
+	}
+	public static void main(String[] args) throws IOException
 	{
 	    Move move = new Move();
 	    move.pilot = new DifferentialPilot(3.0f, 14.7f, Motor.A, Motor.B);
-//	    File arq = new File("Entrada");
-//        try
-//        {
-//            FileInputStream arquivoLeitura = new FileInputStream(arq);
-//            ObjectInputStream objLeitura = new ObjectInputStream(arquivoLeitura);
-//            Q_Table Qt = (Q_Table) objLeitura.readObject();
-//            objLeitura.close();
-//            arquivoLeitura.close();
-//        }
-//        catch( Exception e ) // Set Q_table in the first exemple
-//        {
-//            for(int i=0;i<Q_SIZE;i++)
-//            {
-//            	for(int j=0;j<Q_SIZE;j++)
-//            	{
-//            		for(int k=0;k<numberActions;k++)
-//            		{
-//            			Qt.Q[i][j][k] = 0;
-//            		}
-//            	}
-//            }
-//        }
-//	    run(move);
-//	    FileOutputStream f_out = new FileOutputStream(arq);
-//	    ObjectOutputStream obj_out = new ObjectOutputStream (f_out);
-//	    obj_out.writeObject (Qt);
-//	    Button.waitForAnyPress();
+	    File data = new File("Qlog.dat");
+	    loadInput(data);
+	    Button.waitForAnyPress();
+	    run(move);
+	    writeOutput(data);
+	    Button.waitForAnyPress();
 	}
 
 }
