@@ -10,14 +10,16 @@ import java.util.Random;
 import lejos.nxt.Button;
 import lejos.nxt.Motor;
 import lejos.robotics.navigation.DifferentialPilot;
+import lejos.util.Delay;
 
 
 public class Qlearning {
     final static double alpha = 0.1;
     final static double gamma = 0.9;
     final static int maxstep = 10;
+    final static int epsilon = 2;
     
-    static int episode = 1;
+    static int episode = 0;
 	
     public static final int Q_BASE = 0; // Base
 	public static final int Q_SIZE = 6; // Matriz 6x6
@@ -27,8 +29,7 @@ public class Qlearning {
 	
 	public static final State goal = new State(4, 5); // goal
 	public static final State initial = new State(0, 0); // initial state 
-	
-//	private static double Q[][][] = new double[Q_SIZE][Q_SIZE][numberActions]; // Q-table
+	static Random  rand = new Random();
 
 	public enum Actions
 	{
@@ -36,52 +37,77 @@ public class Qlearning {
 	}
 
 	private static void run(Move move)
-    {
-		int steps = 0;
-    	for(int i=0;i<10;i++)//train episodes
-    	{
-    		State iniState = new State(Q_BASE,Q_BASE);
-    		System.out.println("new episode " + episode + " steps " + steps);
-    		steps=0;
-//    		Button.waitForAnyPress(); // new episode
-//    		LCD.clear();
-    		steps++;
-    		while(!(iniState.x == goal.x && iniState.y == goal.y))
-    		{
-    	    	Random rand = new Random();
-    			int randIndex = rand.nextInt(numberActions);
-    			
-    			Actions act = Actions.values()[randIndex];
-    			if(valid(iniState, act))
-    			{
-    				steps++;
-//    				System.out.println(iniState.x + " " + iniState.y + " " + act);
-//    				if(steps%maxstep==0) // correction for moving errors
-//    				{	
-//    					//Button.waitForAnyPress();
-//    				}
-    				State nextState = next(iniState, act);
-    				double q = Qtable(iniState, randIndex);
-    				double max = maxQ(nextState);
-    				double r = reward(iniState, act);   			
-    				double value = q + alpha * (r + gamma * max - q);    			
-    				setQ(iniState, randIndex, value);  			
-    				move.Doaction(act);	
-    				iniState = nextState;
-    			}
-    		}
-    		episode++;
-    	}
-    }
-
-	private static void setQ(State iniState, int act, double value) //OK
 	{
-		Qt.Q[iniState.x][iniState.y][act] = value;
+		int steps = 0;
+		boolean greedy; // false = random, true = greedy
+		for(int i=0;i<1000;i++)//train episodes
+		{
+			State iniState = new State(Q_BASE,Q_BASE);
+			steps=0;
+			while(!(iniState.x == goal.x && iniState.y == goal.y))
+			{
+		    	greedy = isGreedy();
+				Actions act = newAction(greedy, iniState);
+				steps++;
+				State nextState = next(iniState, act);
+				double q = Qtable(iniState, act);
+				double max = maxQ(nextState);
+				double r = reward(nextState);   			
+				double value = q + alpha * (r + gamma * max - q);    			
+				setQ(iniState, act, value);  			
+				//move.Doaction(act);
+				iniState = nextState;
+			}
+			episode++;
+			System.out.println("new episode " + episode + " steps " + steps);
+			Button.waitForAnyPress();
+		}
+	}
+	private static Actions newAction(boolean greedy,State iniState)
+	{
+		Actions act = Actions.FORWARD;
+		if(greedy=false) //random action
+		{
+			do
+			{
+				int randIndex = rand.nextInt(numberActions);
+				act = Actions.values()[randIndex];
+			}while(!valid(iniState, act));
+		}
+		else
+		{
+			double maxValue = -100000;  // min Value
+			int best=0;
+			for(int i=0;i<numberActions;i++)
+			{
+				act = Actions.values()[i];
+				if((Qt.Q[iniState.x][iniState.y][i]>maxValue)&&(valid(iniState,act)))
+				{
+					maxValue = Qt.Q[iniState.x][iniState.y][i];
+					best=i;
+				}
+			}
+			act = Actions.values()[best];
+		}
+		return act;
+	}
+	private static boolean isGreedy()
+	{
+		int randIndex = rand.nextInt(10);
+		if(randIndex <= epsilon)
+			return false;
+		return true;
+	}
+	private static void setQ(State iniState, Actions act, double value) //OK
+	{
+		int Index = act.ordinal();
+		Qt.Q[iniState.x][iniState.y][Index] = value;
 	}
 	
-	private static double Qtable (State iniState, int act) //OK
+	private static double Qtable (State iniState, Actions act) //OK
 	{
-		return Qt.Q[iniState.x][iniState.y][act];
+		int Index = act.ordinal();
+		return Qt.Q[iniState.x][iniState.y][Index];
 	}
 	private static boolean valid(State state, Actions act) //OK
 	{
@@ -93,21 +119,21 @@ public class Qlearning {
 	}
 	private static State next (State iniState, Actions act) //OK
 	{
-		State nextState = iniState;
+		State nextState = null;
 		if(act==Actions.FORWARD)
-			nextState.y += 1;
+			nextState = new State(iniState.x,iniState.y+1);
 		else
 		{
 			if(act==Actions.LEFT)
-				nextState.x -= 1;
+				nextState = new State(iniState.x-1,iniState.y);
 			else
 			{
 				if (act==Actions.RIGHT)
-					nextState.x += 1;
+					nextState = new State(iniState.x+1,iniState.y);
 				else
 				{
 					if(act==Actions.BACKWARD)
-						nextState.y -= 1;
+						nextState = new State(iniState.x,iniState.y-1);
 				}
 			}	
 		}
@@ -126,11 +152,12 @@ public class Qlearning {
 		return maxValue;
 	}
 	
-	public static double reward(State iniState, Actions act) //OK
+	public static double reward(State fin) //OK
 	{
-		if(iniState==goal)
+		if(fin.x==goal.x && fin.y==goal.y)
 			return 1000;
 		return -0.1;
+		
 	}
 	public static void loadInput(File data)
 	{
@@ -147,6 +174,9 @@ public class Qlearning {
 	      			{
 	      				float x = din.readFloat();
 	      				Qt.Q[i][j][k] = x;
+//	      				System.out.println(x);
+//	      				Button.waitForAnyPress();
+//	      				LCD.clear();
 	      			}
 	      		}
 	      }
@@ -194,13 +224,22 @@ public class Qlearning {
 	        System.err.println("Failed to write to output stream");
 	    }
 	}
+	public static void newTable()
+	{
+		for(int i=0;i<Q_SIZE;i++)
+			for(int j=0;j<Q_SIZE;j++)
+				for(int k=0;k<numberActions;k++)
+					Qt.Q[i][j][k]=0;
+	}
 	public static void main(String[] args) throws IOException
 	{
 	    Move move = new Move();
 	    move.pilot = new DifferentialPilot(3.0f, 14.7f, Motor.A, Motor.B);
 	    File data = new File("Qlog.dat");
 	    loadInput(data);
+	    newTable();
 	    Button.waitForAnyPress();
+	    Delay.msDelay(5000);
 	    run(move);
 	    writeOutput(data);
 	    Button.waitForAnyPress();
