@@ -8,12 +8,13 @@ import java.io.InputStream;
 import java.util.Random;
 
 import lejos.nxt.Button;
+import lejos.nxt.LCD;
 import lejos.nxt.Motor;
 import lejos.robotics.navigation.DifferentialPilot;
 import lejos.util.Delay;
 
 
-public class Qlearning {
+public class Qlearning{
     final static double alpha = 0.1;
     final static double gamma = 0.9;
     final static int maxstep = 10;
@@ -55,12 +56,11 @@ public class Qlearning {
 				double r = reward(nextState);   			
 				double value = q + alpha * (r + gamma * max - q);    			
 				setQ(iniState, act, value);  			
-				//move.Doaction(act);
+				move.Doaction(act);
 				iniState = nextState;
 			}
 			episode++;
 			System.out.println("new episode " + episode + " steps " + steps);
-			Button.waitForAnyPress();
 		}
 	}
 	private static Actions newAction(boolean greedy,State iniState)
@@ -165,7 +165,7 @@ public class Qlearning {
 	    {
 	      InputStream is = new FileInputStream(data);
 	      DataInputStream din = new DataInputStream(is);
-
+	      //int count=1;
 	      for(int i=0;i<Q_SIZE;i++)
 	      {
 	      		for(int j=0;j<Q_SIZE;j++)
@@ -174,9 +174,6 @@ public class Qlearning {
 	      			{
 	      				float x = din.readFloat();
 	      				Qt.Q[i][j][k] = x;
-//	      				System.out.println(x);
-//	      				Button.waitForAnyPress();
-//	      				LCD.clear();
 	      			}
 	      		}
 	      }
@@ -237,7 +234,7 @@ public class Qlearning {
 	    move.pilot = new DifferentialPilot(3.0f, 14.7f, Motor.A, Motor.B);
 	    File data = new File("Qlog.dat");
 	    loadInput(data);
-	    newTable();
+	    //newTable();
 	    Button.waitForAnyPress();
 	    Delay.msDelay(5000);
 	    run(move);
