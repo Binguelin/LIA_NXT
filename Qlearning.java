@@ -47,7 +47,7 @@ public class Qlearning{
 			steps=0;
 			while(!(iniState.x == goal.x && iniState.y == goal.y))
 			{
-		    	greedy = isGreedy();
+		    		greedy = isGreedy();
 				Actions act = newAction(greedy, iniState);
 				steps++;
 				State nextState = next(iniState, act);
@@ -66,7 +66,7 @@ public class Qlearning{
 	private static Actions newAction(boolean greedy,State iniState)
 	{
 		Actions act = Actions.FORWARD;
-		if(greedy=false) //random action
+		if(greedy==false) //random action
 		{
 			do
 			{
